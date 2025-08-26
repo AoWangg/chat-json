@@ -16,6 +16,10 @@ const customJestConfig = {
 
   testEnvironment: 'jest-environment-jsdom',
 
+  transformIgnorePatterns: [
+    '/node_modules/(?!react-markdown|remark-gfm|lucide-react|unist-util-visit|pretty-bytes)/',
+  ],
+
   /**
    * Absolute imports and Module Path Aliases
    */
