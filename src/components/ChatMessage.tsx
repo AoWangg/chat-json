@@ -109,10 +109,10 @@ const ChatMessageComponent = ({
         delay: index * 0.02,
         ease: [0.25, 0.46, 0.45, 0.94],
       }}
-      className='group relative'
+      className='group relative w-full min-w-0'
     >
       <div
-        className={`flex gap-3 p-4 rounded-xl bg-white/70 border border-slate-200/50 hover:bg-white/90 hover:border-slate-300/50 transition-all duration-200 shadow-sm ${
+        className={`flex gap-3 p-4 rounded-xl bg-white/70 border border-slate-200/50 hover:bg-white/90 hover:border-slate-300/50 transition-all duration-200 shadow-sm w-full min-w-0 ${
           isMessage ? 'bg-white/90 border-slate-300/70 shadow-md' : ''
         }`}
       >
@@ -219,7 +219,7 @@ const ChatMessageComponent = ({
 
           {/* Main Content */}
           <motion.div
-            className={`leading-relaxed ${
+            className={`leading-relaxed w-full min-w-0 ${
               isReasoning
                 ? 'text-slate-600 bg-slate-50/50 p-3 rounded border border-slate-200/30'
                 : isMessage
@@ -235,7 +235,7 @@ const ChatMessageComponent = ({
             {message.content ? (
               isMessage || isReasoning ? (
                 <div
-                  className={`prose prose-slate prose-sm max-w-none ${
+                  className={`prose prose-slate prose-sm max-w-none w-full min-w-0 overflow-hidden ${
                     isReasoning ? 'prose-reasoning' : ''
                   }`}
                 >
@@ -273,18 +273,40 @@ const ChatMessageComponent = ({
                         </blockquote>
                       ),
                       ul: ({ children }) => (
-                        <ul className='list-disc list-inside mb-4 space-y-1'>
-                          {children}
-                        </ul>
+                        <ul className='list-none mb-4 space-y-1'>{children}</ul>
                       ),
                       ol: ({ children }) => (
-                        <ol className='list-decimal list-inside mb-4 space-y-1'>
-                          {children}
-                        </ol>
+                        <ol className='list-none mb-4 space-y-1'>{children}</ol>
                       ),
-                      li: ({ children }) => (
-                        <li className='leading-relaxed mb-1'>{children}</li>
-                      ),
+                      li: ({ children, ...props }) => {
+                        // 获取父元素类型来判断是否为有序列表
+                        const isOrderedList =
+                          (props.node as Element)?.parent?.tagName === 'ol';
+                        const index =
+                          (props.node as Element)?.parent?.children
+                            ?.filter((child: Element) => child.tagName === 'li')
+                            .indexOf(props.node as Element) + 1;
+
+                        if (isOrderedList) {
+                          return (
+                            <li className='leading-relaxed mb-1 flex'>
+                              <span className='text-slate-600 font-mono mr-2 flex-shrink-0'>
+                                {index}.
+                              </span>
+                              <div className='flex-1 min-w-0'>{children}</div>
+                            </li>
+                          );
+                        }
+
+                        return (
+                          <li className='leading-relaxed mb-1 flex'>
+                            <span className='text-slate-600 mr-2 flex-shrink-0'>
+                              •
+                            </span>
+                            <div className='flex-1 min-w-0'>{children}</div>
+                          </li>
+                        );
+                      },
                       h1: ({ children }) => (
                         <h1 className='text-xl font-bold mb-4 mt-6 first:mt-0'>
                           {children}

@@ -223,9 +223,12 @@ const ChatInterface = () => {
 
     es.onmessage = (event) => {
       if (event.data === '[DONE]') {
-        handleChatEnd(); // 处理聊天结束
-        setIsStreaming(false);
-        es.close();
+        // 在处理聊天结束前，先暂停一下让最后的更新处理完
+        setTimeout(() => {
+          handleChatEnd();
+          setIsStreaming(false);
+          es.close();
+        }, 100);
         return;
       }
 
@@ -246,8 +249,24 @@ const ChatInterface = () => {
   };
 
   const handleChatEnd = () => {
-    // 使用会话跟踪中的所有消息
-    const allSessionMessages = currentSessionMessages.current;
+    // 将所有未完成的消息标记为完成
+    const allSessionMessages = currentSessionMessages.current.map((msg) => ({
+      ...msg,
+      isComplete: true,
+    }));
+
+    // 更新当前实时消息状态为完成
+    setMessages((prev) =>
+      prev.map((msg) => ({
+        ...msg,
+        isComplete: true,
+      }))
+    );
+
+    // 更新messageBuffer中的消息状态
+    messageBuffer.current.forEach((msg, id) => {
+      messageBuffer.current.set(id, { ...msg, isComplete: true });
+    });
 
     if (allSessionMessages.length > 0) {
       const responseMessages = allSessionMessages.filter(
@@ -310,62 +329,65 @@ const ChatInterface = () => {
   };
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-white'>
-      <div className='max-w-4xl mx-auto p-6 h-screen flex flex-col'>
-        {/* 头部控制区 */}
+    <div className='min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-white h-screen overflow-hidden w-full'>
+      {/* 桌面端布局 */}
+      <div className='hidden lg:flex h-screen w-full'>
+        {/* 左侧控制面板 */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className='bg-white/90 backdrop-blur-sm rounded-2xl border border-slate-200/50 p-6 mb-6 shadow-lg'
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className='w-96 min-w-96 bg-white/90 backdrop-blur-sm border-r border-slate-200/50 p-6 flex flex-col shadow-lg overflow-y-auto'
         >
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center gap-3'>
-              <div className='p-2 bg-gradient-to-r from-teal-500 to-teal-600 rounded-xl'>
-                <Zap className='w-6 h-6 text-white' />
+          {/* 头部控制区 */}
+          <div className='space-y-6'>
+            <div>
+              <div className='flex items-center gap-3 mb-4'>
+                <div className='p-2 bg-gradient-to-r from-teal-500 to-teal-600 rounded-xl flex-shrink-0'>
+                  <Zap className='w-6 h-6 text-white' />
+                </div>
+                <div className='min-w-0'>
+                  <h1 className='text-2xl font-bold text-slate-800 leading-tight'>
+                    AI Agent Chat
+                  </h1>
+                </div>
               </div>
-              <div>
-                <h1 className='text-2xl font-bold text-slate-800'>
-                  AI Agent Chat
-                </h1>
-                <p className='text-slate-600 text-sm'>
-                  Multi-agent conversation analysis with intelligent reasoning
-                </p>
-              </div>
+              <p className='text-slate-600 text-sm leading-relaxed mb-6'>
+                Multi-agent conversation analysis with intelligent reasoning
+              </p>
             </div>
 
-            <div className='flex items-center gap-3'>
+            {/* 按钮区域 */}
+            <div className='flex flex-col gap-3'>
               {!isStreaming ? (
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={startStreaming}
-                  className='flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-xl hover:from-teal-600 hover:to-teal-700 transition-all duration-200 shadow-lg'
+                  className='flex items-center justify-center gap-2 w-full py-3 px-4 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-xl hover:from-teal-600 hover:to-teal-700 transition-all duration-200 shadow-lg'
                 >
                   <Play className='w-4 h-4' />
                   Start Analysis
                 </motion.button>
               ) : (
-                <div className='flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-teal-500/20 to-teal-600/20 text-teal-600 rounded-xl border border-teal-200'>
+                <div className='flex items-center justify-center gap-2 w-full py-3 px-4 bg-gradient-to-r from-teal-500/20 to-teal-600/20 text-teal-600 rounded-xl border border-teal-200'>
                   <Activity className='w-4 h-4' />
                   Analyzing...
                 </div>
               )}
 
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={resetChat}
-                className='flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-slate-400 to-slate-500 text-white rounded-xl hover:from-slate-500 hover:to-slate-600 transition-all duration-200 shadow-lg'
+                className='flex items-center justify-center gap-2 w-full py-3 px-4 bg-gradient-to-r from-slate-400 to-slate-500 text-white rounded-xl hover:from-slate-500 hover:to-slate-600 transition-all duration-200 shadow-lg'
               >
                 <RotateCcw className='w-4 h-4' />
                 Reset
               </motion.button>
             </div>
-          </div>
 
-          {/* Stats */}
-          <div className='flex items-center gap-6 mt-4 pt-4 border-t border-slate-200/50'>
-            <div className='flex items-center gap-2'>
+            {/* 状态指示器 */}
+            <div className='flex items-center gap-2 py-3 px-4 bg-slate-50/80 rounded-xl border border-slate-200/50'>
               <Activity
                 className={`w-4 h-4 ${
                   isStreaming ? 'text-teal-600' : 'text-slate-400'
@@ -380,89 +402,269 @@ const ChatInterface = () => {
               </span>
             </div>
 
-            <div className='flex items-center gap-4 text-sm text-slate-600'>
-              <span>
-                Conversations:{' '}
-                <span className='text-slate-800 font-mono'>
-                  {conversationGroups.length}
-                </span>
-              </span>
-              <span>
-                Active Messages:{' '}
-                <span className='text-slate-800 font-mono'>
-                  {messages.length}
-                </span>
-              </span>
-              <span>
-                Reasoning:{' '}
-                <span className='text-teal-600 font-mono'>
-                  {stats.reasoning}
-                </span>
-              </span>
-              <span>
-                Tools:{' '}
-                <span className='text-cyan-600 font-mono'>
-                  {stats.toolCalls}
-                </span>
-              </span>
-              <span>
-                Responses:{' '}
-                <span className='text-emerald-600 font-mono'>
-                  {stats.messages}
-                </span>
-              </span>
+            {/* 统计数据 */}
+            <div className='space-y-3'>
+              <h3 className='text-sm font-semibold text-slate-700 uppercase tracking-wide'>
+                Statistics
+              </h3>
+              <div className='grid grid-cols-2 gap-3'>
+                <div className='bg-slate-50/80 rounded-lg p-3 border border-slate-200/50'>
+                  <div className='text-xs text-slate-500 mb-1'>
+                    Conversations
+                  </div>
+                  <div className='text-lg font-bold text-slate-800 font-mono'>
+                    {conversationGroups.length}
+                  </div>
+                </div>
+                <div className='bg-slate-50/80 rounded-lg p-3 border border-slate-200/50'>
+                  <div className='text-xs text-slate-500 mb-1'>Messages</div>
+                  <div className='text-lg font-bold text-slate-800 font-mono'>
+                    {messages.length}
+                  </div>
+                </div>
+                <div className='bg-teal-50/80 rounded-lg p-3 border border-teal-200/50'>
+                  <div className='text-xs text-teal-600 mb-1'>Thinking</div>
+                  <div className='text-lg font-bold text-teal-700 font-mono'>
+                    {stats.reasoning}
+                  </div>
+                </div>
+                <div className='bg-cyan-50/80 rounded-lg p-3 border border-cyan-200/50'>
+                  <div className='text-xs text-cyan-600 mb-1'>Tools</div>
+                  <div className='text-lg font-bold text-cyan-700 font-mono'>
+                    {stats.toolCalls}
+                  </div>
+                </div>
+                <div className='bg-emerald-50/80 rounded-lg p-3 border border-emerald-200/50 col-span-2'>
+                  <div className='text-xs text-emerald-600 mb-1'>Responses</div>
+                  <div className='text-lg font-bold text-emerald-700 font-mono'>
+                    {stats.messages}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 底部信息 */}
+          <div className='mt-auto pt-6 border-t border-slate-200/50'>
+            <div className='text-xs text-slate-400 text-center'>
+              Multi-agent AI Analysis Platform
             </div>
           </div>
         </motion.div>
 
-        {/* 对话组和实时消息列表区域 */}
-        <div className='flex-1 overflow-y-auto space-y-6 pb-4 custom-scrollbar'>
-          {/* 已完成的对话组 */}
-          <AnimatePresence mode='popLayout'>
-            {conversationGroups.map((group, index) => (
-              <ConversationGroupComponent
-                key={group.id}
-                group={group}
-                index={index}
-              />
-            ))}
-          </AnimatePresence>
+        {/* 右侧聊天内容区域 */}
+        <div className='flex-1 flex flex-col h-screen min-w-0 overflow-hidden'>
+          {/* 对话组和实时消息列表区域 */}
+          <div className='flex-1 overflow-y-auto space-y-6 p-6 custom-scrollbar'>
+            {/* 已完成的对话组 */}
+            <AnimatePresence mode='popLayout'>
+              {conversationGroups.map((group, index) => (
+                <ConversationGroupComponent
+                  key={group.id}
+                  group={group}
+                  index={index}
+                />
+              ))}
+            </AnimatePresence>
 
-          {/* 实时消息列表 */}
-          {messages.length > 0 && (
-            <div className='space-y-3'>
-              <AnimatePresence mode='popLayout'>
-                {messages.map((message, index) => (
-                  <ChatMessageComponent
-                    key={message.id}
-                    message={message}
-                    index={index}
-                  />
-                ))}
-              </AnimatePresence>
-            </div>
-          )}
-
-          {conversationGroups.length === 0 && messages.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className='text-center py-20'
-            >
-              <div className='p-6 bg-gradient-to-r from-teal-500/10 to-cyan-500/10 rounded-2xl border border-slate-200/50 backdrop-blur-sm'>
-                <Zap className='w-16 h-16 mx-auto mb-4 text-slate-400' />
-                <h2 className='text-2xl font-bold text-slate-800 mb-2'>
-                  Ready for Agent Analysis
-                </h2>
-                <p className='text-slate-600'>
-                  Click "Start Analysis" to explore multi-agent conversations
-                  with intelligent reasoning breakdown
-                </p>
+            {/* 实时消息列表 */}
+            {messages.length > 0 && (
+              <div className='space-y-3'>
+                <AnimatePresence mode='popLayout'>
+                  {messages.map((message, index) => (
+                    <ChatMessageComponent
+                      key={message.id}
+                      message={message}
+                      index={index}
+                    />
+                  ))}
+                </AnimatePresence>
               </div>
-            </motion.div>
-          )}
+            )}
 
-          <div ref={messagesEndRef} />
+            {conversationGroups.length === 0 && messages.length === 0 && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className='flex items-center justify-center h-full'
+              >
+                <div className='text-center py-20 max-w-md'>
+                  <div className='p-6 bg-gradient-to-r from-teal-500/10 to-cyan-500/10 rounded-2xl border border-slate-200/50 backdrop-blur-sm'>
+                    <Zap className='w-16 h-16 mx-auto mb-4 text-slate-400' />
+                    <h2 className='text-2xl font-bold text-slate-800 mb-2'>
+                      Ready for Agent Analysis
+                    </h2>
+                    <p className='text-slate-600'>
+                      Click "Start Analysis" to explore multi-agent
+                      conversations with intelligent reasoning breakdown
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+      </div>
+
+      {/* 移动端布局 - 保持原有设计 */}
+      <div className='lg:hidden h-screen flex flex-col overflow-hidden'>
+        <div className='w-full p-3 sm:p-6 h-screen flex flex-col min-w-0'>
+          {/* 头部控制区 */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className='bg-white/90 backdrop-blur-sm rounded-2xl border border-slate-200/50 p-4 lg:p-6 mb-6 shadow-lg min-w-0'
+          >
+            <div className='flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 min-w-0'>
+              <div className='flex items-center gap-3 min-w-0'>
+                <div className='p-2 bg-gradient-to-r from-teal-500 to-teal-600 rounded-xl flex-shrink-0'>
+                  <Zap className='w-5 h-5 lg:w-6 lg:h-6 text-white' />
+                </div>
+                <div className='min-w-0'>
+                  <h1 className='text-xl lg:text-2xl font-bold text-slate-800 leading-tight'>
+                    AI Agent Chat
+                  </h1>
+                  <p className='text-slate-600 text-xs lg:text-sm leading-relaxed'>
+                    Multi-agent conversation analysis with intelligent reasoning
+                  </p>
+                </div>
+              </div>
+
+              <div className='flex items-center gap-2 lg:gap-3 flex-shrink-0'>
+                {!isStreaming ? (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={startStreaming}
+                    className='flex items-center gap-2 px-4 py-2 lg:px-6 lg:py-3 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-xl hover:from-teal-600 hover:to-teal-700 transition-all duration-200 shadow-lg text-sm lg:text-base'
+                  >
+                    <Play className='w-4 h-4' />
+                    <span className='hidden sm:inline'>Start Analysis</span>
+                    <span className='sm:hidden'>Start</span>
+                  </motion.button>
+                ) : (
+                  <div className='flex items-center gap-2 px-4 py-2 lg:px-6 lg:py-3 bg-gradient-to-r from-teal-500/20 to-teal-600/20 text-teal-600 rounded-xl border border-teal-200 text-sm lg:text-base'>
+                    <Activity className='w-4 h-4' />
+                    <span className='hidden sm:inline'>Analyzing...</span>
+                    <span className='sm:hidden'>Analysis</span>
+                  </div>
+                )}
+
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={resetChat}
+                  className='flex items-center gap-2 px-4 py-2 lg:px-6 lg:py-3 bg-gradient-to-r from-slate-400 to-slate-500 text-white rounded-xl hover:from-slate-500 hover:to-slate-600 transition-all duration-200 shadow-lg text-sm lg:text-base'
+                >
+                  <RotateCcw className='w-4 h-4' />
+                  <span className='hidden sm:inline'>Reset</span>
+                </motion.button>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className='flex flex-wrap items-center gap-3 lg:gap-6 mt-4 pt-4 border-t border-slate-200/50'>
+              <div className='flex items-center gap-2 flex-shrink-0'>
+                <Activity
+                  className={`w-4 h-4 ${
+                    isStreaming ? 'text-teal-600' : 'text-slate-400'
+                  }`}
+                />
+                <span
+                  className={`text-xs lg:text-sm font-medium ${
+                    isStreaming ? 'text-teal-600' : 'text-slate-400'
+                  }`}
+                >
+                  {isStreaming ? 'Analyzing' : 'Ready'}
+                </span>
+              </div>
+
+              <div className='flex flex-wrap items-center gap-2 lg:gap-4 text-xs lg:text-sm text-slate-600'>
+                <span className='whitespace-nowrap'>
+                  Conv:{' '}
+                  <span className='text-slate-800 font-mono'>
+                    {conversationGroups.length}
+                  </span>
+                </span>
+                <span className='whitespace-nowrap'>
+                  Msg:{' '}
+                  <span className='text-slate-800 font-mono'>
+                    {messages.length}
+                  </span>
+                </span>
+                <span className='whitespace-nowrap'>
+                  Think:{' '}
+                  <span className='text-teal-600 font-mono'>
+                    {stats.reasoning}
+                  </span>
+                </span>
+                <span className='whitespace-nowrap'>
+                  Tools:{' '}
+                  <span className='text-cyan-600 font-mono'>
+                    {stats.toolCalls}
+                  </span>
+                </span>
+                <span className='whitespace-nowrap'>
+                  Resp:{' '}
+                  <span className='text-emerald-600 font-mono'>
+                    {stats.messages}
+                  </span>
+                </span>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* 对话组和实时消息列表区域 */}
+          <div className='flex-1 overflow-y-auto py-6 px-2 space-y-6 pb-4 custom-scrollbar min-w-0'>
+            {/* 已完成的对话组 */}
+            <AnimatePresence mode='popLayout'>
+              {conversationGroups.map((group, index) => (
+                <ConversationGroupComponent
+                  key={group.id}
+                  group={group}
+                  index={index}
+                />
+              ))}
+            </AnimatePresence>
+
+            {/* 实时消息列表 */}
+            {messages.length > 0 && (
+              <div className='space-y-3'>
+                <AnimatePresence mode='popLayout'>
+                  {messages.map((message, index) => (
+                    <ChatMessageComponent
+                      key={message.id}
+                      message={message}
+                      index={index}
+                    />
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
+
+            {conversationGroups.length === 0 && messages.length === 0 && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className='text-center py-20'
+              >
+                <div className='p-6 bg-gradient-to-r from-teal-500/10 to-cyan-500/10 rounded-2xl border border-slate-200/50 backdrop-blur-sm'>
+                  <Zap className='w-16 h-16 mx-auto mb-4 text-slate-400' />
+                  <h2 className='text-2xl font-bold text-slate-800 mb-2'>
+                    Ready for Agent Analysis
+                  </h2>
+                  <p className='text-slate-600'>
+                    Click "Start Analysis" to explore multi-agent conversations
+                    with intelligent reasoning breakdown
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
         </div>
       </div>
     </div>

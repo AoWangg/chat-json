@@ -79,19 +79,8 @@ const ConversationGroupComponent = ({
               </motion.div>
               <MessageSquare className='w-4 h-4 text-slate-400' />
               <span className='text-sm text-slate-500 group-hover:text-slate-600'>
-                思考过程详情
+                Thinking Process
               </span>
-            </div>
-
-            <div className='flex items-center gap-3 ml-auto'>
-              <span className='text-xs text-slate-400 bg-slate-100/80 px-2 py-1 rounded-full border border-slate-200/50'>
-                {thinkingMessages.length} steps
-              </span>
-              {!isExpanded && (
-                <span className='text-xs text-slate-500'>
-                  {isExpanded ? 'Hide' : 'Show'} details
-                </span>
-              )}
             </div>
           </motion.button>
 
@@ -108,29 +97,41 @@ const ConversationGroupComponent = ({
                 }}
                 className='overflow-hidden'
               >
-                <div className='space-y-3 pt-2'>
-                  {thinkingMessages.map((message, msgIndex) => (
-                    <motion.div
-                      key={message.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{
-                        delay: msgIndex * 0.05,
-                        duration: 0.3,
-                      }}
-                      className='relative'
-                    >
-                      {/* Indent line for thinking messages */}
-                      <div className='absolute left-4 top-0 bottom-0 w-px bg-gradient-to-b from-slate-300/50 to-transparent' />
-                      <div className='pl-6'>
-                        <ChatMessageComponent
-                          message={message}
-                          index={msgIndex}
-                          showHeader={true}
-                        />
-                      </div>
-                    </motion.div>
-                  ))}
+                {/* 固定高度的思考过程容器，带渐变遮罩 */}
+                <div className='relative h-96 pt-2 w-full min-w-0'>
+                  {/* 上方渐变遮罩 */}
+                  <div className='absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-white via-white/80 to-transparent pointer-events-none z-10' />
+
+                  {/* 滚动容器 */}
+                  <div className='h-full overflow-y-auto custom-scrollbar px-1 w-full min-w-0'>
+                    <div className='space-y-3 py-4 w-full min-w-0'>
+                      {thinkingMessages.map((message, msgIndex) => (
+                        <motion.div
+                          key={message.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{
+                            delay: msgIndex * 0.05,
+                            duration: 0.3,
+                          }}
+                          className='relative w-full min-w-0'
+                        >
+                          {/* Indent line for thinking messages */}
+                          <div className='absolute left-4 top-0 bottom-0 w-px bg-gradient-to-b from-slate-300/50 to-transparent' />
+                          <div className='pl-6 w-full overflow-hidden min-w-0'>
+                            <ChatMessageComponent
+                              message={message}
+                              index={msgIndex}
+                              showHeader={true}
+                            />
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 下方渐变遮罩 */}
+                  <div className='absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white via-white/80 to-transparent pointer-events-none z-10' />
                 </div>
               </motion.div>
             )}
