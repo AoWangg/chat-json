@@ -279,19 +279,19 @@ const ChatMessageComponent = ({
                         <ol className='list-none mb-4 space-y-1'>{children}</ol>
                       ),
                       li: ({ children, ...props }) => {
-                        // 获取父元素类型来判断是否为有序列表
-                        const isOrderedList =
-                          (props.node as Element)?.parent?.tagName === 'ol';
-                        const index =
-                          (props.node as Element)?.parent?.children
-                            ?.filter((child: Element) => child.tagName === 'li')
-                            .indexOf(props.node as Element) + 1;
+                        // 简化实现：根据父元素判断类型，使用简单的序号生成
+                        const parentNode = (
+                          props.node as unknown as {
+                            parent?: { tagName?: string };
+                          }
+                        )?.parent;
+                        const isOrderedList = parentNode?.tagName === 'ol';
 
                         if (isOrderedList) {
                           return (
                             <li className='leading-relaxed mb-1 flex'>
                               <span className='text-slate-600 font-mono mr-2 flex-shrink-0'>
-                                {index}.
+                                •
                               </span>
                               <div className='flex-1 min-w-0'>{children}</div>
                             </li>
